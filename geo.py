@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import io
+import re
 
 # Função para identificar linhas específicas
 def linha_em_branco(row):
@@ -9,11 +9,39 @@ def linha_em_branco(row):
     else:
         return 'Outra Informação'
 
+# Função para ajustar o formato das coordenadas
+def ajustar_coordenadas(coordenadas):
+    partes = coordenadas.split(';')
+    if len(partes) == 5:
+        partes[1] = partes[1].lstrip('0')
+        partes[3] = partes[3].lstrip('0')
+        novas_coordenadas = f"{partes[0]};-{partes[1]};{partes[2]};-{partes[3]};{partes[4]}"
+        return novas_coordenadas
+    else:
+        return coordenadas  # Retorna a coordenada original se o formato não for o esperado
+
+# Função para remover o 0 inicial após o ponto e vírgula
+def remove_leading_zero(s):
+    return re.sub(r';-0', ';-', s)
+
+# Função para substituir o ponto e vírgula por ponto e garantir que apenas um sinal de menos seja usado
+def substituir_ponto_virgula_por_ponto(s):
+    partes = s.split(';')
+    if len(partes) == 5:
+        partes[1] = f"{partes[1]}.{partes[2]}"
+        partes[3] = f"{partes[3]}.{partes[4]}"
+        novas_coordenadas = f"{partes[0]};-{partes[1]};-{partes[3]}"
+        # Remover sinal de menos duplicado
+        novas_coordenadas = re.sub(r';--', ';-', novas_coordenadas)
+        return novas_coordenadas
+    else:
+        return s
+
 # Função principal
 def main():
     st.title("Filtro de Geolocalização")
+    st.markdown("Para obter as informações .csv para o tratamento dos dados importar da rotina do promax:")
 
-    # Upload do arquivo CSV
     uploaded_file = st.file_uploader("Escolha um arquivo CSV", type="csv")
 
     if uploaded_file is not None:
@@ -22,6 +50,9 @@ def main():
 
         # Substituir vírgulas por ponto e remover espaços
         geo['Coordenadas'] = geo['Coordenadas'].str.replace(',', ';').str.replace(' ', '')
+
+        # Ajustar o formato das coordenadas
+        geo['Coordenadas'] = geo['Coordenadas'].apply(ajustar_coordenadas)
 
         # Criar a coluna "Concatenar"
         geo['Concatenar'] = geo['Cliente'].astype(str) + ';' + geo['Coordenadas'].astype(str)
@@ -32,13 +63,20 @@ def main():
         # Criar a coluna "Linhas Em Branco"
         geo["Linhas Em Branco"] = geo.apply(linha_em_branco, axis=1)
 
-        # Exibir a planilha filtrada
+        # Aplicar a função remove_leading_zero à coluna 'Concatenar'
+        geo_filtrado['Concatenar'] = geo_filtrado['Concatenar'].apply(remove_leading_zero)
+
+        # Aplicar a função substituir_ponto_virgula_por_ponto à coluna 'Concatenar'
+        geo_filtrado['Concatenar'] = geo_filtrado['Concatenar'].apply(substituir_ponto_virgula_por_ponto)
+
         st.write("Concatenar:")
         st.dataframe(geo_filtrado)
 
-        # Preparar o arquivo para download
-        txt = geo_filtrado['Concatenar'].to_csv(index=False, header=False)
-        st.download_button(label="Exportar para TXT", data=txt, file_name='concatenar.txt', mime='text/plain')
+        # Criar o conteúdo do arquivo TXT
+        txt_data = '\n'.join(geo_filtrado['Concatenar'].tolist())
+
+        # Botão para exportar o conteúdo para TXT
+        st.download_button(label="Exportar para TXT", data=txt_data, file_name='concatenar.txt', mime='text/plain')
 
 if __name__ == "__main__":
     main()
