@@ -48,6 +48,15 @@ def main():
         # Leitura do arquivo CSV
         geo = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
 
+        # Mapeamento das filiais
+        filial_mapping = {
+            1: 'Maringá',
+            2: 'Guarapuava',
+            3: 'Ponta_Grossa',
+            4: 'Norte_Pioneiro'
+        }
+        geo['Filial'] = geo['Filial'].map(filial_mapping)
+
         # Substituir vírgulas por ponto e remover espaços
         geo['Coordenadas'] = geo['Coordenadas'].str.replace(',', ';').str.replace(' ', '')
 
@@ -72,11 +81,24 @@ def main():
         st.write("Concatenar:")
         st.dataframe(geo_filtrado)
 
+        # Criar o nome do arquivo dinamicamente
+        if not geo_filtrado.empty:
+            filial = geo_filtrado['Filial'].iloc[0]
+            data_inclusao = geo_filtrado['Data Inclusão'].iloc[0]
+
+            # Remover caracteres inválidos para nomes de arquivos, como '/' e '\'
+            data_inclusao = data_inclusao.replace('/', '-').replace('\\', '-')
+
+            # Criar o nome do arquivo
+            file_name = f"{filial}_{data_inclusao}.txt"
+        else:
+            file_name = "concatenar.txt"
+
         # Criar o conteúdo do arquivo TXT
         txt_data = '\n'.join(geo_filtrado['Concatenar'].tolist())
 
         # Botão para exportar o conteúdo para TXT
-        st.download_button(label="Exportar para TXT", data=txt_data, file_name='concatenar.txt', mime='text/plain')
+        st.download_button(label="Exportar para TXT", data=txt_data, file_name=file_name, mime='text/plain')
 
 if __name__ == "__main__":
     main()
