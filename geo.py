@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from datetime import datetime
 
-st.markdown("<h1 style='text-align: center; color: White;'>Tratamento de Dados para Geolocalizador</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: Black;'>Tratamento de Dados para Geolocalizador</h1>", unsafe_allow_html=True)
 st.divider()
 
 
