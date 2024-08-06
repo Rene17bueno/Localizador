@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
 import re
+from datetime import datetime
+
+st.markdown("<h1 style='text-align: center; color: White;'>Tratamento de Dados para Geolocalizador</h1>", unsafe_allow_html=True)
+st.divider()
+
 
 # Função para identificar linhas específicas
 def linha_em_branco(row):
@@ -39,10 +44,12 @@ def substituir_ponto_virgula_por_ponto(s):
 
 # Função principal
 def main():
-    st.title("Filtro de Geolocalização")
+    st.title("Geolocalização de Novos Clientes")
     st.markdown("Para obter as informações .csv para o tratamento dos dados importar da rotina do promax:")
 
-    uploaded_file = st.file_uploader("Escolha um arquivo CSV", type="csv")
+    st.sidebar.title("Importação e Exportação de Arquivos")
+
+    uploaded_file = st.sidebar.file_uploader("Escolha um arquivo CSV", type="csv")
 
     if uploaded_file is not None:
         # Leitura do arquivo CSV
@@ -98,7 +105,44 @@ def main():
         txt_data = '\n'.join(geo_filtrado['Concatenar'].tolist())
 
         # Botão para exportar o conteúdo para TXT
-        st.download_button(label="Exportar para TXT", data=txt_data, file_name=file_name, mime='text/plain')
+        st.sidebar.download_button(label="Exportar para TXT", data=txt_data, file_name=file_name, mime='text/plain')
+
+    st.markdown("---")
+    st.title("Corrigir Geolocalizador de cliente Existente")
+
+    uploaded_file_2 = st.sidebar.file_uploader("Escolha um arquivo CSV para Processamento de Coordenadas", type="csv", key="processamento")
+
+    if uploaded_file_2 is not None:
+        # Leitura do arquivo CSV
+        df = pd.read_csv(uploaded_file_2, sep=',', encoding='utf-8')
+
+        # Verificar se as colunas necessárias estão presentes
+        if 'CÓDIGO DO CLIENTE ' in df.columns and 'Coordenadas' in df.columns:
+            # Criar a coluna "Concatenado"
+            df['Concatenado'] = df['CÓDIGO DO CLIENTE '].astype(str) + ';' + df['Coordenadas']
+            df['Concatenado'] = df['Concatenado'].str.replace(',', ';').str.replace(' ', '')
+
+            st.write("Concatenado:")
+            st.dataframe(df)
+
+            # Criar o nome do arquivo dinamicamente com base no nome do arquivo inserido e a data atual
+            if not df.empty:
+                # Extrair o nome base do arquivo carregado
+                base_name = uploaded_file_2.name.split('.')[0]
+                # Obter a data atual
+                current_date = datetime.now().strftime("%Y-%m-%d")
+                # Criar o nome do arquivo
+                file_name_2 = f"{base_name}_{current_date}.txt"
+            else:
+                file_name_2 = "planilha.txt"
+
+            # Criar o conteúdo do arquivo TXT
+            txt_data_2 = '\n'.join(df['Concatenado'].tolist())
+
+            # Botão para exportar o conteúdo para TXT
+            st.sidebar.download_button(label="Exportar para TXT", data=txt_data_2, file_name=file_name_2, mime='text/plain')
+        else:
+            st.error("As colunas 'CÓDIGO DO CLIENTE ' e 'Coordenadas' não foram encontradas no arquivo CSV.")
 
 if __name__ == "__main__":
     main()
